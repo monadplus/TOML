@@ -61,12 +61,12 @@ $x_0$                           & $x*$                                & $p*$    
 \end{tabular}
 \end{table}
 
-  \item The method has speed up (see table \ref{table:exercise1_times})
+  \item The method has speed up
 
 \begin{table}[H]
 \centering
 \begin{tabular}{c|c|c}
-$x_0$      & Execution time & Execution time (with jacobi) \\
+$x_0$      & Execution time & Execution time (with jacobi) \\ \hline
 (0, 0)     & 0.0032"        & 0.00185" \\
 (10, 20)   & 0.0014"        & 0.0011" \\
 (-10, 1)   & 0.0094"        & 0.0065" \\
@@ -177,7 +177,36 @@ The optimal point is $x* = (0.69230769, 0.46153846)$ with optimal value $p* = 0.
 \section*{Exercise 6}%
 \label{sec:exercise_6}
 
+The results of Gradient Descent Methdod are shown in \ref{table:exercise6}. The results from the Newton's Method are similar except for the number of iterations which is larger. This is contradictory which may be caused by a bug in the code.
 
+\begin{table}[H]
+\small
+\hspace*{-1cm}\begin{tabular}{c|c|c|c|c|c|c}
+                                     & $x_0$    & $\hat{x}*$   & $\hat{p}*$ & $\eta_{final}$      & iterations & execution time (s)\\ \hline
+  $2x^2-0.5$                         & $(3.0)$  & $9.64e^{-6}$ & $-0.4999$  & $3.86e^{-5}$  & $10$       & $0.00058$      \\ \hline
+  \multirow{4}{*}{$2x^4-4x^2+x-0.5$} & $(-2.0)$ & $-1.0574$    & $-3.529$   & $5.816e^{-5}$ & $13$       & $0.415$        \\ \cline{2-6}
+                                     & $(-0.5)$ & $-1.0575$    & $-3.529$   & $7.96e^{-5}$  & $13$       & $0.398$        \\ \cline{2-6}
+                                     & $(0.5)$  & $-1.057$     & $-3.529$   & $7.339e^{-5}$ & $14$       & $0.3916$       \\ \cline{2-6}
+                                     & $(2.0)$  & $0.930$      & $-1.533$   & $5.873e^{-5}$ & $11$       & $0.3148$       \\
+\end{tabular}
+\label{table:exercise6}
+  \caption{Gradient Descent Method results}
+\end{table}
+
+\begin{listing}[H]
+  \inputminted[breaklines=true,fontsize=\footnotesize]{python}{../gdm.py}
+  \caption{Gradient Descent Method}
+\end{listing}
+
+\begin{listing}[H]
+  \inputminted[breaklines=true,fontsize=\footnotesize]{python}{../newtons.py}
+  \caption{Newton's Method}
+\end{listing}
+
+\begin{listing}[H]
+  \inputminted[breaklines=true,fontsize=\footnotesize]{python}{../backtracking.py}
+  \caption{Backtracking Line Search}
+\end{listing}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -185,7 +214,24 @@ The optimal point is $x* = (0.69230769, 0.46153846)$ with optimal value $p* = 0.
 \section*{Exercise 7}%
 \label{sec:exercise_7}
 
+\begin{itemize}
+  \item $p* = 0.9547$
+  \item $x* = (0.42264894, 1.57735105, 0.57735105)$
+  \item $\lambda* = (1.732, 0.633, 6.437e^{-9}, 6.544e^{-9}, 1.775e^{-9}, 4.779e^{-9})$
+\end{itemize}
 
+\begin{listing}[H]
+  \inputminted[breaklines=true,fontsize=\footnotesize]{python}{../exercise7.py}
+  \label{lst:exercise7}
+  \caption{\code{exercise\_7.py}}
+\end{listing}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{exercise7_plot.png}
+  \label{fig:exercise7}
+  \caption{3D plot of $\log x + \log y$}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -193,7 +239,18 @@ The optimal point is $x* = (0.69230769, 0.46153846)$ with optimal value $p* = 0.
 \section*{Exercise 8}%
 \label{sec:exercise_8}
 
+\begin{itemize}
+  \item $p* = -3.99$
+  \item $x* = (0.16666665, 0.33333335, 0.33333335)$
+  \item $R* = (0.5, 0.16666665, 0.33333335)$
+  \item $\lambda* = (2.999, 2.999, 2.999, 2.999)$
+\end{itemize}
 
+\begin{listing}[H]
+  \inputminted[breaklines=true,fontsize=\footnotesize]{python}{../exercise8.py}
+  \label{lst:exercise8}
+  \caption{\code{exercise\_8.py}}
+\end{listing}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

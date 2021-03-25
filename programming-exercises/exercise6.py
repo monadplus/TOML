@@ -1,50 +1,42 @@
 #!/usr/bin/env python
 
 import math
-import numpy as np
+from numpy import array
 from scipy.optimize import minimize
 from timeit import timeit
-from numdifftools import Jacobian, Hessian
+from gdm import gdm
+from newtons import newtons
 
-def solveUsingScipy(objFun, x0):
+def solveUsingScipy(objFun, x0, jac, hess):
+    print(f'SLSQP:')
     res = minimize(objFun, x0, method='SLSQP', constraints=[], options={'ftol': 1e-4, 'disp': True})
-    print(f'x1* = {res.x}\n')
+    print(f'\tx1* = {res.x}\n')
 
-def gdm(x0, objFun, jacobian=None, accuracy=1e-4):
-    """Gradient Descent Method"""
-    if jacobian is None:
-        jacobian = Jacobian(objFun)
-    steps = 0
-    x = x0
-    d = -jacobian(x)
-    while(math.fabs(d) > accuracy):
-        def backtrackingLineSearch():
-            # Backtracking Line Search
-            alpha = 0.25
-            beta = 0.85
-            t = 1
-            steps = 0
-            while(objFun(x + t*d) >= objFun(x) + alpha*t*jacobian(x)*d):
-                t *= beta
-                steps += 1
-            return t
-        t = backtrackingLineSearch()
-        x = x + t*d
-        d = -jacobian(x)
-        steps += 1
-    return (x, objFun(x), steps, math.fabs(d))
-
-problems = [ (np.array([3.0]), lambda x:  2*x[0]**2 - 0.5, "2*x[0]**2 - 0.5")
-           , (np.array([-2.0]), lambda x:  2*x[0]**4 - 4*x[0]**2 + x - 0.5, "2*x[0]**4 - 4*x[0]**2 + x - 0.5")
-           , (np.array([-0.5]), lambda x:  2*x[0]**4 - 4*x[0]**2 + x - 0.5, "2*x[0]**4 - 4*x[0]**2 + x - 0.5")
-           , (np.array([0.5]), lambda x:  2*x[0]**4 - 4*x[0]**2 + x - 0.5, "2*x[0]**4 - 4*x[0]**2 + x - 0.5")
+problems = [ (array([3.0]), lambda x:  2*x[0]**2 - 0.5, lambda x: array([ 4*x[0] ]), None, "2*x[0]**2 - 0.5")
+           , (array([-2.0]), lambda x:  2*x[0]**4 - 4*x[0]**2 + x - 0.5, None, None, "2*x[0]**4 - 4*x[0]**2 + x - 0.5")
+           , (array([-0.5]), lambda x:  2*x[0]**4 - 4*x[0]**2 + x - 0.5, None, None, "2*x[0]**4 - 4*x[0]**2 + x - 0.5")
+           , (array([0.5]), lambda x:  2*x[0]**4 - 4*x[0]**2 + x - 0.5, None, None, "2*x[0]**4 - 4*x[0]**2 + x - 0.5")
+           , (array([2.0]), lambda x:  2*x[0]**4 - 4*x[0]**2 + x - 0.5, None, None, "2*x[0]**4 - 4*x[0]**2 + x - 0.5")
            ]
-for (x0, objFun, title) in problems:
-    print(f'=== Solving {title} ===')
-    (x, p, steps, finalAccuracy) = gdm(x0, objFun)
-    print(f'x* = {x}')
-    print(f'p* = {p}')
-    print(f'steps = {steps}')
-    print(f'eta = {finalAccuracy}')
-    solveUsingScipy(objFun, x0)
-    print("=============================================")
+
+def solveUsingGDM(objFun, x0, jac, hess):
+    print(f'Gradient Descent Method:')
+    (x, p, steps, finalAccuracy) = timeit(gdm, objFun, x0, jacobian=jac)
+    print(f'\tx* = {x[0]}')
+    print(f'\tp* = {p}')
+    print(f'\tsteps = {steps}')
+    print(f'\teta = {finalAccuracy}')
+
+def solveUsingNM(objFun, x0, jac, hess):
+    print(f'Newton\'s Method:')
+    (x, p, steps, finalAccuracy) = timeit(newtons, objFun, x0, jacobian=jac, hessian=hess)
+    print(f'\tx* = {x}')
+    print(f'\tp* = {p}')
+    print(f'\tsteps = {steps}')
+    print(f'\teta = {finalAccuracy}')
+
+for (x0, objFun, jac, hess, title) in problems:
+    print(f"============ Solving {title} =================")
+    solveUsingScipy(objFun, x0, jac, hess)
+    solveUsingGDM(objFun, x0, jac, hess)
+    solveUsingNM(objFun, x0, jac, hess)
