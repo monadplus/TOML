@@ -1,4 +1,4 @@
-.PHONY : clean cleanpdf cleandist all
+.PHONY : clean cleanpdf cleandist all report.pdf
 
 TARGET=report
 

@@ -3,27 +3,100 @@
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
-\rhead{TODO}
-\lhead{TODO}
+\rhead{TOML}
+\lhead{UPC}
 \rfoot{Page \thepage}
 
 \title{%
   \vspace{-10ex}
-  Project 1: Optimization of energy consumption and end to end delay in a wireless sensor network using duty-cycle MAC protocols
+  TOML: Project 1\\
+  \large{Optimization of energy consumption and end to end delay in a wireless sensor network using duty-cycle MAC protocols}
 }
 \author{%
   Arnau Abella \\
   \large{Universitat Polit\`ecnica de Catalunya}
 }
 \date{\today}
-
 \begin{document}
 \maketitle
+
 %%%%%%%%%%%%% DOCUMENT %%%%%%%%%%%%%%%%
 
-\section{Introduction}
-\label{sec:introduction}
+Listing \ref{lst:introduction} and \ref{lst:bottleneck} is reused through all three exercises.
+The $\alpha$'s and $\beta$'s are only computed once per $F_{s}$ since they are constant with respect to $T_{W}$.
+\begin{listing}[H]
+  \inputminted[firstline=34, lastline=58, breaklines=true,fontsize=\footnotesize]{python}{../code/main.py}
+  \caption{Functions for $E^{X-MAC}$ and $L^{X-MAC}$}
+  \label{lst:introduction}
+\end{listing}
 
+\begin{listing}[H]
+  \inputminted[firstline=98, lastline=104, breaklines=true,fontsize=\footnotesize]{python}{../code/main.py}
+  \caption{Bottleneck constraint}
+  \label{lst:bottleneck}
+\end{listing}
+
+\section*{Exercise 1}%
+\label{sec:exercise1}
+
+Figure \ref{fig:exercise1} is produced by listing \ref{lst:exercise1}. Each row in the figure corresponds to different values of $F_{s}$ where $F_{s} \in \{5, 10, 15, 20, 25, 30\}$. The first column corresponds to the energy consumption ($E^{X-MAC}$) in \textit{joules} of the \textit{X-MAC} protocol with respect to the wake-up period ($T_{w}$) in milliseconds. The second column corresponds to the delay ($L^{X-MAC}$) in milliseconds of the X-MAC protocol with respect to $T_{w}$ in milliseconds. The third column is just the combination of both previous columns in the same plot. The fourth column corresponds to the correlation between energy consumption and delay. From the last plot, we can conclude that minimizing both energy consumption and delay \textit{w.r.t} $T_{w}$ is not feasible since there exist a negative correlation between these parameters. Notice, smaller values of $T_{w}$ are not studied since those values are mathematically possible but not physically feasible.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{exercise_1_1}\hfill
+  \includegraphics[width=1\textwidth]{exercise_1_2}\hfill
+  \includegraphics[width=1\textwidth]{exercise_1_3}\hfill
+  \includegraphics[width=1\textwidth]{exercise_1_4}\hfill
+  \includegraphics[width=1\textwidth]{exercise_1_5}\hfill
+  \includegraphics[width=1\textwidth]{exercise_1_6}
+  \caption{Energy vs. delay in XMAC protocol}
+  \label{fig:exercise1}
+\end{figure}
+
+\begin{listing}[H]
+  \inputminted[firstline=57, lastline=96, breaklines=true,fontsize=\footnotesize]{python}{../code/main.py}
+  \caption{First exercise}
+  \label{lst:exercise1}
+\end{listing}
+
+\section*{Exercise 2}%
+\label{sec:exercise2}
+
+The left plot of fig. \ref{fig:exercise2} corresponds to the minimization of energy consumption subject to the maximum delay ($L_{max}$). This plot is computed by incrementing $L_{max}$ in the interval $[500, 3000]$. $T_{w}$ increases as the $L_{max}$ increases (relaxes). Once the sweet spot is hit, relaxing $L_{w}$ doesn't increase $T_{w}$.
+
+The right plot of fig. \ref{fig:exercise2} corresponds to the minimization of delay subject to the budget power consumption ($E_{budget}$). This plot is computed by incrementing $E_{budget}$ in the interval $[0.1, 3]$. The plot is constant since $E_{budget}$ is not restrictive (loose) and the maximum delay is achieved when $T_{w}$ is minimum i.e. $L^{X-MAC} = L_{min}$.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.6\textwidth]{exercise_2}
+  \caption{Optimizing XMAC protocol}
+  \label{fig:exercise2}
+\end{figure}
+
+The code for finding $T_{w}$ that minimizes the energy consumption can be found at \ref{lst:p1} and the code for finding $T_{w}$ that minimized the delay can be found at \ref{lst:p2}. The problem can be solved in few lines of code thanks to the abstraction of functions \ref{lst:introduction} and mostly thanks to the \code{gpkit} library which does an incredible job for solving \textit{geometric optimization problems}.
+
+\begin{listing}[H]
+  \inputminted[firstline=106, lastline=129, breaklines=true,fontsize=\footnotesize]{python}{../code/main.py}
+  \caption{Minimization of energy subject to delay}
+  \label{lst:p1}
+\end{listing}
+
+\begin{listing}[H]
+  \inputminted[firstline=131, lastline=156, breaklines=true,fontsize=\footnotesize]{python}{../code/main.py}
+  \caption{Minimization of delay subject to energy}
+  \label{lst:p2}
+\end{listing}
+
+\section*{Exercise 3}%
+\label{sec:exercise3}
+
+By applying Nash Bargaining Scheme (NBS) we can solve the optimization problem which finds $T_{w}$ that balances both $E^{X-MAC}$ and $L^{X-MAC}$. The problem is non-convex although we can apply \textit{wlog} the logarithm to the objective function to make it convex. The wake-up period that balances both energy consumption and delay is $T_{w} = 214.62$ milliseconds. Listing \ref{lst:exercise3} solves NBS problem using \code{scipy} library.
+
+\begin{listing}[H]
+  \inputminted[firstline=183, lastline=214, breaklines=true,fontsize=\footnotesize]{python}{../code/main.py}
+  \caption{Third exercise}
+  \label{lst:exercise3}
+\end{listing}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % \bibliographystyle{unsrt}

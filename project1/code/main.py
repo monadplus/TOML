@@ -43,9 +43,7 @@ def getAlphas(Fs) -> (float, float, float):
     return (alpha1, alpha2, alpha3)
 
 def computeEnergy(Fs):
-    # Trick to compute alphas once per call.
     alpha1, alpha2, alpha3 = getAlphas(Fs)
-    # print(f'alpha1 {alpha1}'); print(f'alpha2 {alpha2}'); print(f'alpha3 {alpha3}')
     def go(Tw):
         return alpha1/Tw + alpha2*Tw + alpha3
     return go
@@ -54,11 +52,9 @@ def computeDelay(Tw, Fs):
     d = D # where delay is maximized (worst-case scenario)
     beta1 = 0.5*d
     beta2 = (Tcw/2 + Tdata)*d
-    # print(f'beta1 {beta1}'); print(f'beta2 {beta2}')
     return beta1*Tw + beta2
 
 def exercise1():
-    # Compute energy and delay
     Fss = list(map(lambda x: 1.0/(x*60*1000), [1.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0]))
     Tws = list(np.linspace(Tw_min, Tw_max, num=20))
     arr = np.zeros((len(Fss),(len(Tws)), 2), dtype=float)
@@ -66,22 +62,19 @@ def exercise1():
         for j, Tw in enumerate(Tws):
             arr[i,j, 0] = computeEnergy(Fs)(Tw)
             arr[i,j, 1] = computeDelay(Tw, Fs)
-
+    # Plotting
     for i, subArr in enumerate(arr):
         fig, axs = plt.subplots(1, 4, figsize=(12, 3))
-
         # Fig 1
         axs[0].plot(Tws, subArr[:, 0], color='blue')
         axs[0].set_xlabel('$T_w$(ms)')
         axs[0].set_ylabel('Energy(J)')
         axs[0].set_title('Energy ~ $T_w$')
-
         # Fig 2
         axs[1].plot(Tws, subArr[:, 1], color='red')
         axs[1].set_xlabel('$T_w$(ms)')
         axs[1].set_ylabel('Delay(ms)')
         axs[1].set_title('Delay ~ $T_w$')
-
         # Fig 3
         axs[2].set_xlabel('$T_w$(ms)')
         axs[2].set_ylabel('Energy(J)')
@@ -90,14 +83,12 @@ def exercise1():
         axcopy.set_ylabel('Delay(ms)')
         l2, = axcopy.plot(Tws, subArr[:, 1], color='red', label='Delay')
         plt.legend((l1, l2), (l1.get_label(), l2.get_label()), loc='upper left')
-
         # Fig 4
         axs[3].plot(subArr[:, 0], subArr[:, 1], color='black')
         axs[3].set_xlabel('Energy(J)')
         axs[3].set_ylabel('Delay(ms)')
         axs[3].set_title('Energy ~ Delay')
-
-        # Whole plot
+        # Plot
         fig.suptitle('XMAC: energy vs. delay', fontsize=12)
         fig.tight_layout()
         fp = plotsDir + 'exercise_1_{}.png'.format(str(i))
@@ -112,9 +103,6 @@ def bottleneckConstraint(Fs, Tw: Variable):
     Etx1 = (Tcs + Tal + Ttx)*Fout1
     return I*Etx1 <= 1/4
 
-
-# The output should be linearly incrementing until Lmax >= L(Tw of Emax).
-# Then it should be constant.
 def p1(Fs, Lmax) -> float:
     """
     minimize E
@@ -173,21 +161,19 @@ def exercise2():
     Ebudgets = np.linspace(0.1, 3.0, num=20)
     Tws1 = np.fromiter(map(lambda Lmax: p1(Fs, Lmax), Lmaxs), dtype=float)
     Tws2 = np.fromiter(map(lambda Ebudget: p2(Fs, Ebudget), Ebudgets), dtype=float)
-
+    # Plotting
     fig, (ax1, ax2) = plt.subplots(1, 2)
-
     # Fig 1
     ax1.plot(Lmaxs, Tws1, color='blue')
     ax1.set_xlabel('$L_{max}$(ms)')
     ax1.set_ylabel('$T_w$(ms)')
     ax1.set_title('$T_w$ optimized (w.r.t. energy)')
-
     # Fig 2
     ax2.plot(Ebudgets, Tws2, color='blue')
     ax2.set_xlabel('$E_{budget}$(J)')
     ax2.set_ylabel('$T_w$(ms)')
     ax2.set_title('$T_w$ optimized (w.r.t. delay)')
-
+    # Plot
     fig.suptitle('XMAC: optimization', fontsize=12)
     fig.tight_layout()
     fp = plotsDir + 'exercise_2.png'
@@ -196,21 +182,17 @@ def exercise2():
 
 def exercise3():
     Fs = 1.0/(30.0*60.0*1000.0) # arbitrary
-
     # Constants
     Eworst = computeEnergy(Fs)(Tw_min)
     Lworst = computeDelay(Tw_max, Fs)
-
     # Variables:
     # x[0] = Tw
     # x[1] = E_1
     # x[2] = L_1
-
     def objective(x):
         E_1 = x[1]
         L_1 = x[2]
         return - np.log(Eworst - E_1) - np.log(Lworst - L_1)
-
     def constraints(x):
         Tw  = x[0]
         E_1 = x[1]
@@ -224,11 +206,9 @@ def exercise3():
                , Tw - Tw_min
                , bottleneckConstraint(Fs, Tw)
                ]
-
+    x0 = np.array([300.0, 0.02, 1000.0])
     ineq_cons = { 'type' : 'ineq',
                   'fun': constraints}
-
-    x0 = np.array([300.0, 0.02, 1000.0])
     res = minimize(objective, x0, method='SLSQP', constraints=[ineq_cons], options={'ftol': 1e-9, 'disp': False})
     p = round(res['x'][0], 2)
     print(f'(Exercise 3) Tw* = {p} milliseconds w.r.t. energy/delay')
