@@ -5,6 +5,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from gpkit import Variable, Model
+from scipy.optimize import minimize
 
 plotsDir = 'plots/'
 
@@ -99,11 +100,11 @@ def exercise1():
         # Whole plot
         fig.suptitle('XMAC: energy vs. delay', fontsize=12)
         fig.tight_layout()
-        fig.savefig(plotsDir + 'exercise_1_{}.png'.format(str(i)))
+        fp = plotsDir + 'exercise_1_{}.png'.format(str(i))
+        fig.savefig(fp)
+        print(f'(Exercise 1) {fp} written succesfully.')
 
 def bottleneckConstraint(Fs, Tw: Variable):
-    # FIXME TypeError: must be real number, not Monomial
-    #   Ttx = math.ceil(Tw/(Tps+Tal))*((Tps+Tal)/2)+Tack+Tdata
     # Since the difference between ceiling and not ceiling is minimal, wlog we remove the ceiling.
     Ttx = (Tw/2)+Tack+Tdata
     I = C # If d=0 then I_d = C
@@ -189,10 +190,52 @@ def exercise2():
 
     fig.suptitle('XMAC: optimization', fontsize=12)
     fig.tight_layout()
-    fig.savefig(plotsDir + 'exercise_2.png')
+    fp = plotsDir + 'exercise_2.png'
+    fig.savefig(fp)
+    print(f'(Exercise 2) {fp} written succesfully.')
+
+def exercise3():
+    Fs = 1.0/(30.0*60.0*1000.0) # arbitrary
+
+    # Constants
+    Eworst = computeEnergy(Fs)(Tw_min)
+    Lworst = computeDelay(Tw_max, Fs)
+
+    # Variables:
+    # x[0] = Tw
+    # x[1] = E_1
+    # x[2] = L_1
+
+    def objective(x):
+        E_1 = x[1]
+        L_1 = x[2]
+        return - np.log(Eworst - E_1) - np.log(Lworst - L_1)
+
+    def constraints(x):
+        Tw  = x[0]
+        E_1 = x[1]
+        L_1 = x[2]
+        E = computeEnergy(Fs)(Tw)
+        L = computeDelay(Tw, Fs)
+        return [ Eworst - E
+               , E_1 - E
+               , Lworst - L
+               , L_1 - L
+               , Tw - Tw_min
+               , bottleneckConstraint(Fs, Tw)
+               ]
+
+    ineq_cons = { 'type' : 'ineq',
+                  'fun': constraints}
+
+    x0 = np.array([300.0, 0.02, 1000.0])
+    res = minimize(objective, x0, method='SLSQP', constraints=[ineq_cons], options={'ftol': 1e-9, 'disp': False})
+    p = round(res['x'][0], 2)
+    print(f'(Exercise 3) Tw* = {p} milliseconds w.r.t. energy/delay')
 
 if __name__=="__main__":
     if not os.path.exists('plots'):
         os.makedirs('plots')
     exercise1()
     exercise2()
+    exercise3()
