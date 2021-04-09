@@ -12,4 +12,9 @@ constraints = [2*x*y + 2*x*z + 2*y*z <= S,
                x >= 2*y]
 m = Model(objective, constraints)
 sol = m.solve(verbosity=0)
-print(sol.table())
+
+# print(sol.table())
+print("Optimal cost:  %.4g" % sol["cost"])
+print("Optimal x val: %.4g" % sol["variables"][x])
+print("Optimal y val: %.4g" % sol["variables"][y])
+print("Optimal z val: %.4g" % sol["variables"][z])

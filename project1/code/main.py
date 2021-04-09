@@ -2,6 +2,7 @@
 # coding: utf-8 -*-
 
 import os
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 import gpkit
@@ -16,10 +17,6 @@ D     = 8              # number of levels
 C     = 5              # neighbors size (connectivity)
 N     = C*D**2         # number of nodes
 
-# NOTE times are in milliseconds (ms)
-Lmax  = 5000.          # Maximal allowed Delay (ms)
-Emax  = 1.             # Maximal Energy Budjet (J)
-
 L_pbl = 4.             # preamble length [byte]
 L_hdr = 9. + L_pbl     # header length [byte]
 L_ack = 9. + L_pbl     # ACK length [byte]
@@ -33,8 +30,6 @@ Tcw  = 15*0.62         # Contention window size [ms]
 Tcs  = 2.60            # Time [ms] to turn the radio into TX and probe the channel (carrier sense)
 Tdata = Thdr + P/R + Tack # data packet transmission duration [ms]
 
-Fs   = 1.0/(60*30*1000) # 1 packet/half_hour = 1/(60*30*1000) pk/ms
-
 Tw_max  = 500.       # Maximum Duration of Tw in ms
 Tw_min  = 100.       # Minimum Duration of Tw in ms
 
@@ -47,17 +42,22 @@ def computeEnergy(Tw, Fs):
     alpha1 = Tcs + Tal + (3/2)*Tps*((Tps + Tal)/2 + Tack + Tdata)*Fb
     alpha2 = Fout/2
     alpha3 = ((Tps+Tal)/2 + Tcs + Tal + Tack + Tdata)*Fout + ((3/2)*Tps + Tack + Tdata)*Fi + (3/4)*Tps*Fb
+    # print(f'alpha1 {alpha1}')
+    # print(f'alpha2 {alpha2}')
+    # print(f'alpha3 {alpha3}')
     return alpha1/Tw + alpha2*Tw + alpha3
 
 def computeDelay(Tw, Fs):
     d = D # where delay is maximized (worst-case scenario)
-    # TODO are the formulas ok?
     beta1 = 0.5*d
     beta2 = (Tcw/2 + Tdata)*d
+    # print(f'beta1 {beta1}')
+    # print(f'beta2 {beta2}')
     return beta1*Tw + beta2
 
 def exercise1():
-    Fss = list(map(lambda x: 1.0/(x*60*1000), [1, 5, 10, 15, 20, 25, 30]))
+    # Compute energy and delay
+    Fss = list(map(lambda x: 1.0/(x*60*1000), [1.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0]))
     Tws = list(np.linspace(Tw_min, Tw_max, num=20))
     arr = np.zeros((len(Fss),(len(Tws)), 2), dtype=float)
     for i, Fs in enumerate(Fss):
@@ -66,24 +66,121 @@ def exercise1():
             arr[i,j, 1] = computeDelay(Tw, Fs)
 
     for i, subArr in enumerate(arr):
-        fig, axs = plt.subplots(1, 3, figsize=(9, 9))
+        fig, axs = plt.subplots(1, 3, figsize=(9, 3))
+
+        # Fig 1
         axs[0].plot(Tws, subArr[:, 0], color='yellow')
-        axs[0].set_xlabel('Tw')
-        axs[0].set_title('Energy ~ Tw')
+        axs[0].set_xlabel('$T_w$(ms)')
+        axs[0].set_ylabel('Energy(J)')
+        axs[0].set_title('Energy ~ $T_w$')
 
+        # Fig 2
         axs[1].plot(Tws, subArr[:, 1], color='red')
-        axs[1].set_xlabel('Tw')
-        axs[1].set_title('Delay ~ Tw')
+        axs[1].set_xlabel('$T_w$(ms)')
+        axs[1].set_ylabel('Delay(ms)')
+        axs[1].set_title('Delay ~ $T_w$')
 
-        axs[2].plot(Tws, subArr[:, 0], color='yellow', label='energy')
-        axs[2].plot(Tws, subArr[:, 1], color='red', label='delay')
-        axs[2].set_xlabel('Tw')
-        axs[2].legend()
-        axs[2].set_title('Energy/Delay')
+        # Fig 3
+        axs[2].set_xlabel('$T_w$(ms)')
+        axs[2].set_ylabel('Energy(J)')
+        l1, = axs[2].plot(Tws, subArr[:, 0], color='yellow', label='Energy')
+        axcopy = axs[2].twinx()
+        axcopy.set_ylabel('Delay(ms)')
+        l2, = axcopy.plot(Tws, subArr[:, 1], color='red', label='Delay')
 
+        # Whole plot
+        plt.legend((l1, l2), (l1.get_label(), l2.get_label()), loc='upper left')
+        fig.suptitle('XMAC: energy vs. delay', fontsize=12)
+        fig.tight_layout()
         fig.savefig(plotsDir + 'exercise_1_{}.png'.format(str(i)))
+
+def bottleneckConstraint(Fs, Tw: Variable):
+    # Ttx = math.ceil(Tw/(Tps+Tal))*((Tps+Tal)/2)+Tack+Tdata
+    # FIXME TypeError: must be real number, not Monomial
+    # Trick: ceiling(a/b) == -(-a//b)
+    Ttx = (Tw/(Tps+Tal))*((Tps+Tal)/2)+Tack+Tdata
+    I = C # If d=0 then I_d = C
+    Fout1 = Fs*(D**2) # Fs*((D**2 - d**2 + 2*d - 1)/(2*d - 1)) where d = 1
+    Etx1 = (Tcs + Tal + Ttx)*Fout1
+    return I*Etx1 <= 1/4
+
+
+# The output should be linearly incrementing until Lmax >= L(Tw of Emax).
+# Then it should be constant
+def p1(Fs, Lmax) -> float:
+    """
+    minimize E
+
+    subject to:
+      L <= L_{max}
+      T_w >= T_w^{min}
+      |I^0|*E_{tx}^1 <= 1/4
+
+    var. Tw
+    """
+    Tw = Variable('Tw')
+    objective = computeEnergy(Tw, Fs)
+    constraints = [ computeDelay(Tw, Fs) <= Lmax
+                  , Tw >= Tw_min
+                  , bottleneckConstraint(Fs, Tw)
+                  ]
+    m = Model(objective, constraints)
+    # m.debug() # Some problems are not feasible
+    try:
+        sol = m.solve(verbosity=0)
+        return sol['variables'][Tw]
+    except Exception:
+        return None
+
+def p2(Fs, Ebudget) -> float:
+    """
+    minimize L
+
+    subject to:
+      E <= E_{budget}
+      T_w >= T_w^{min}
+      |I^0|*E_{tx}^1 <= 1/4
+
+    var. Tw
+    """
+    # Tw = Variable('Tw')
+    # objective = computeDelay(Tw, Fs)
+    # constraints = [ computeEnergy(Tw, Fs) <= Ebudget
+    #               , Tw >= Tw_min
+    #               # , bottleneckConstraint(Fs, Tw)
+    #               ]
+    # m = Model(objective, constraints)
+    # sol = m.solve(verbosity=0)
+    # return sol['variables'][Tw]
+    return 1.0
+
+def exercise2():
+    Fs = 1.0/(10.0*60.0*1000.0) # arbitrary
+    Lmaxs = list(np.linspace(100.0, 5000.0, num=10))
+    Ebudgets = list(np.linspace(0.5, 5.0, num=10))
+    Tws1 = list(map(lambda Lmax: p1(Fs, Lmax), Lmaxs))
+    Tws2 = list(map(lambda Ebudget: p2(Fs, Ebudget), Ebudgets))
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6, 3))
+
+    # Fig 1
+    ax1.plot(Lmaxs, Tws1, color='blue')
+    ax1.set_xlabel('$L_{max}$(ms)')
+    ax1.set_ylabel('$T_w$(ms)')
+    ax1.set_title('$T_w$ optimized (w.r.t. energy)')
+
+    # Fig 2
+    ax2.plot(Ebudgets, Tws2, color='blue')
+    ax2.set_xlabel('$E_{budget}$(J)')
+    ax2.set_ylabel('$T_w$(ms)')
+    ax2.set_title('$T_w$ optimized (w.r.t. delay)')
+
+    fig.suptitle('XMAC: optimization', fontsize=12)
+    fig.tight_layout()
+    fig.savefig(plotsDir + 'exercise_2.png')
 
 if __name__=="__main__":
     if not os.path.exists('plots'):
         os.makedirs('plots')
     exercise1()
+    exercise2()
