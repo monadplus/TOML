@@ -1,3 +1,5 @@
+.PHONY: project.pdf clean
+
 default: all
 
 all: project.pdf
